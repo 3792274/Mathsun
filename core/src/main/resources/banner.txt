@@ -1,0 +1,30 @@
+Spring Boot的版本号:                ${spring-boot.version}
+${spring-boot.version}             ${spring-boot.formatted-version}
+
+
+
+
+
+MMMMMMMM               MMMMMMMM                           tttt          hhhhhhh                                 SSSSSSSSSSSSSSS
+M:::::::M             M:::::::M                        ttt:::t          h:::::h                               SS:::::::::::::::S
+M::::::::M           M::::::::M                        t:::::t          h:::::h                              S:::::SSSSSS::::::S
+M:::::::::M         M:::::::::M                        t:::::t          h:::::h                              S:::::S     SSSSSSS
+M::::::::::M       M::::::::::M  aaaaaaaaaaaaa   ttttttt:::::ttttttt     h::::h hhhhh                        S:::::S            uuuuuu    uuuuuu  nnnn  nnnnnnnn
+M:::::::::::M     M:::::::::::M  a::::::::::::a  t:::::::::::::::::t     h::::hh:::::hhh                     S:::::S            u::::u    u::::u  n:::nn::::::::nn
+M:::::::M::::M   M::::M:::::::M  aaaaaaaaa:::::a t:::::::::::::::::t     h::::::::::::::hh                    S::::SSSS         u::::u    u::::u  n::::::::::::::nn
+M::::::M M::::M M::::M M::::::M           a::::a tttttt:::::::tttttt     h:::::::hhh::::::h  ---------------   SS::::::SSSSS    u::::u    u::::u  nn:::::::::::::::n
+M::::::M  M::::M::::M  M::::::M    aaaaaaa:::::a       t:::::t           h::::::h   h::::::h -:::::::::::::-     SSS::::::::SS  u::::u    u::::u    n:::::nnnn:::::n
+M::::::M   M:::::::M   M::::::M  aa::::::::::::a       t:::::t           h:::::h     h:::::h ---------------        SSSSSS::::S u::::u    u::::u    n::::n    n::::n
+M::::::M    M:::::M    M::::::M a::::aaaa::::::a       t:::::t           h:::::h     h:::::h                             S:::::Su::::u    u::::u    n::::n    n::::n
+M::::::M     MMMMM     M::::::Ma::::a    a:::::a       t:::::t    tttttt h:::::h     h:::::h                             S:::::Su:::::uuuu:::::u    n::::n    n::::n
+M::::::M               M::::::Ma::::a    a:::::a       t::::::tttt:::::t h:::::h     h:::::h                 SSSSSSS     S:::::Su:::::::::::::::uu  n::::n    n::::n
+M::::::M               M::::::Ma:::::aaaa::::::a       tt::::::::::::::t h:::::h     h:::::h                 S::::::SSSSSS:::::S u:::::::::::::::u  n::::n    n::::n
+M::::::M               M::::::M a::::::::::aa:::a        tt:::::::::::tt h:::::h     h:::::h                 S:::::::::::::::SS   uu::::::::uu:::u  n::::n    n::::n
+MMMMMMMM               MMMMMMMM  aaaaaaaaaa  aaaa          ttttttttttt   hhhhhhh     hhhhhhh                  SSSSSSSSSSSSSSS       uuuuuuuu  uuuu  nnnnnn    nnnnnn
+
+
+
+
+
+
+

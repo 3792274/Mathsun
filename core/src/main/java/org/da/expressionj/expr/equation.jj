@@ -1,0 +1,1148 @@
+/*
+    Copyright (c) 2011, 2012 Herve Girod. All rights reserved.
+    DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+
+    This library is free software; you can redistribute it and/or
+    modify it under the terms of the GNU Lesser General Public
+    License as published by the Free Software Foundation; either
+    version 2.1 of the License, or (at your option) any later version.
+
+    This library is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+    Lesser General Public License for more details.
+
+    You should have received a copy of the GNU Lesser General Public
+    License along with this library; if not, write to the Free Software
+    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+
+    If you have any questions about this project, you can visit
+    the project website at the project page on http://expressionj.sourceforge.net
+*/
+options {
+    LOOKAHEAD=2;
+}
+
+PARSER_BEGIN(EquationParser)
+package org.da.expressionj.expr.parser;
+import java.io.StringReader;
+import java.util.Stack;
+import java.util.List;
+import java.util.ArrayList;
+import org.da.expressionj.expr.*;
+import org.da.expressionj.model.*;
+import org.da.expressionj.functions.ConstantsDefinitions;
+
+/**
+ * This class performs logical expression parsing and evaluation.
+ * It is build with JavaCC.
+ *
+ * @version 0.9.2
+ */
+public class EquationParser {
+    private static EquationParser parser;
+    private static final short TYPE_NONE = 0;
+    private static final short TYPE_CHOICE = 1;
+    private static final short TYPE_WHILE = 2;
+    private static Stack<Expression> argStack = new Stack();
+    private static Stack<Stack<Expression>> paramStack = new Stack();
+    private static Stack<Stack<Expression>> functionsStack = new Stack();
+    private static Stack<CodeBlock> blocks = new Stack();
+    private static Stack<ExprCHOICE> choices = new Stack();
+    private static Stack<ExprWHILE> whiles = new Stack();
+    private static Stack<Short> curly = new Stack();
+    private static ParsedEquation equation = null;
+    private static ExprFunction exprFunction = null;
+    private static ConstantsDefinitions constants = ConstantsDefinitions.getInstance();
+    private static boolean acceptUndefVars = true;
+    private static boolean inPar = false;
+    private static String affectType = null;
+    private static ExprAffectation affect = null;
+    private static Variable affectVariable = null; 
+    private static boolean checkSemiColon = false;
+
+    public static void main(String[] args) throws ParseException {
+    }
+
+    public static void acceptUndefinedVariables(boolean accept) {
+        acceptUndefVars = accept;
+    }
+
+    public static boolean isAcceptingUndefinedVariables() {
+        return acceptUndefVars;
+    }
+
+    public static Equation parse(String text, List<Variable> vars) throws ParseException {
+        try { 
+            functionsStack = new Stack();
+            argStack = new Stack();
+            paramStack = new Stack();
+            blocks = new Stack();
+            choices = new Stack();
+            whiles = new Stack();
+            curly = new Stack();
+            affectType = null;
+            affectVariable = null;
+            affect = null;
+            checkSemiColon = false;
+            equation = new ParsedEquation();
+            equation.acceptUndefinedVariables(acceptUndefVars);
+            equation.setVariables(vars);
+            if (parser == null) {
+                  parser = new EquationParser(new StringReader(text));
+            } else {
+                  parser.ReInit(new StringReader(text));
+            }
+            parser.parse();
+            if (blocks.isEmpty()) {
+               equation.setExpression(argStack.pop());
+            } else {
+               if (! argStack.isEmpty()) {
+                 Expression arg = argStack.pop();
+                 if (arg!= null) {
+                    blocks.peek().addExpression(arg);
+                 }
+               }
+               equation.setExpression(blocks.peek());
+            }
+        } catch (ParseException e) {
+            throw e;
+        } catch (Exception e) {
+            ParseException pe = new ParseException(e.getMessage());
+            pe.setStackTrace(e.getStackTrace());
+            throw pe;
+        }
+
+        return equation;
+    }
+
+    public static Equation parse(String text) throws ParseException {
+        try { 
+            equation = new ParsedEquation();
+            functionsStack = new Stack();
+            paramStack = new Stack();
+            argStack = new Stack();
+            blocks = new Stack();
+            choices = new Stack();
+            whiles = new Stack();
+            curly = new Stack();
+            affectType = null;
+            affectVariable = null;
+            affect = null;
+            checkSemiColon = false;
+            equation.acceptUndefinedVariables(acceptUndefVars);
+            if (parser == null) {
+               parser = new EquationParser(new StringReader(text));
+            } else {
+               parser.ReInit(new StringReader(text));
+            }
+            parser.parse();
+            if (blocks.isEmpty()) {
+               equation.setExpression(argStack.pop());
+            } else {
+               if (! argStack.isEmpty()) {
+                 Expression arg = argStack.pop();
+                 if (arg!= null) {
+                    blocks.peek().addExpression(arg);
+                 }
+               }
+               equation.setExpression(blocks.peek());
+            }
+        } catch (ParseException e) {
+            throw e;
+        } catch (Exception e) {
+            ParseException pe = new ParseException(e.getMessage());
+            pe.setStackTrace(e.getStackTrace());
+            throw pe;
+        }
+
+         return equation;
+    }
+
+   private static void push(Expression expr) {
+     checkSemiColon();
+     argStack.push(expr);
+   }
+
+   private static void checkSemiColon() {
+      if (checkSemiColon && (! argStack.empty())) {
+        Expression expr = argStack.pop();
+        if (blocks.isEmpty()) {
+          CodeBlock block = new CodeBlock();
+          blocks.push(block);
+        }
+        CodeBlock block = blocks.peek(); 
+        if (block.lastExpression() != expr) {
+           blocks.peek().addExpression(expr);
+        }
+      }
+      checkSemiColon = false;
+   }
+
+   private static Variable getVariable(String varName) {
+     if (blocks.isEmpty()) {
+        return equation.getVariable(varName);
+     } else {
+        Variable var = blocks.peek().getInternalVariable(varName);
+        if (var == null) {
+           return equation.getVariable(varName);
+        } else {
+           return var;
+        }
+     }
+   }
+
+   private static void setVariableType(Variable var, String typeS) {
+      if (typeS.equals("int")) {
+         var.setType(Expression.TYPE_INTEGER);
+         var.setStructure(Expression.STRUCT_SCALAR);
+      } else if (typeS.equals("float")) {
+         var.setType(Expression.TYPE_FLOAT);
+         var.setStructure(Expression.STRUCT_SCALAR);
+      } else if (typeS.equals("bool")) {
+         var.setType(Expression.TYPE_BOOL);
+         var.setStructure(Expression.STRUCT_SCALAR);
+      } else if (typeS.equals("string")) {
+         var.setType(Expression.TYPE_STRING);
+         var.setStructure(Expression.STRUCT_SCALAR);
+      } else if (typeS.equals("int[]")) {
+         var.setType(Expression.TYPE_INTEGER);
+         var.setStructure(Expression.STRUCT_ARRAY);
+      } else if (typeS.equals("float[]")) {
+         var.setType(Expression.TYPE_FLOAT);
+         var.setStructure(Expression.STRUCT_ARRAY);
+      } else if (typeS.equals("bool[]")) {
+         var.setType(Expression.TYPE_BOOL);
+         var.setStructure(Expression.STRUCT_ARRAY);
+      } else if (typeS.equals("string[]")) {
+         var.setType(Expression.TYPE_STRING);
+         var.setStructure(Expression.STRUCT_ARRAY);
+      }
+   }
+
+    private static void closePar2() {
+      Expression expr = argStack.pop();
+      if (! functionsStack.isEmpty()) {
+         argStack = functionsStack.pop();
+         argStack.push(expr);
+      } else {
+         argStack = new Stack();
+         argStack.push(expr);
+      }    
+    }
+
+    private static void addArguments(ExprArray array) {
+      Stack<Expression> args = paramStack.pop();
+      if (args != null) {
+         List<Expression> reorderedList = new ArrayList(args.size());
+         try {
+            while (! args.isEmpty()) {
+               reorderedList.add(args.pop());
+            }
+            int count = reorderedList.size() - 1;
+            for (int i = 0; i < reorderedList.size(); i++) {
+               array.addExpression(reorderedList.get(count - i));
+            }
+         } catch (Exception e) {
+            System.out.println(e);
+         }
+      }
+    }
+
+    private static void addArguments(AbstractExprFunction function) {
+      Stack<Expression> args = paramStack.pop();
+      if (args != null) {
+         List<Expression> reorderedList = new ArrayList(args.size());
+         try {
+            while (! args.isEmpty()) {
+               reorderedList.add(args.pop());
+            }
+            int count = reorderedList.size() - 1;
+            for (int i = 0; i < reorderedList.size(); i++) {
+               function.addExpression(reorderedList.get(count - i));
+            }
+         } catch (Exception e) {
+            System.out.println(e);
+         }
+      }
+    }
+
+}
+PARSER_END(EquationParser)
+
+SKIP :
+{
+ 	" "
+|	"\r"
+|	"\t"
+|	"\n"
+}
+
+TOKEN : /* OPERATORS */
+{
+	< AND: "&&" >
+|	< OR: "||" >
+|	< XOR: "^" >
+|	< NOT: "!" >
+|	< GT: ">" >
+|	< LT: "<" >
+|	< GE: ">=" >
+|	< LE: "<=" >
+|	< EQ: "==" >
+|	< NEQ: "!=" >
+|	< INCREMENT: "++" >
+|	< DECREMENT: "--" >
+|       < AFFECTATION: "=" >
+|       < ADDASSIGNMENT: "+=" >
+|       < SUBASSIGNMENT: "-=" >
+|       < MULTASSIGNMENT: "*=" >
+|       < DIVASSIGNMENT: "/=" >
+|	< ADD: "+" >
+|	< SUB: "-" >
+|	< DIV: "/" >
+|	< MOD: "%" >
+|	< MULT: "*" >
+|	< SIN: "sin" >
+|	< COS: "cos" >
+|	< TAN: "tan" >
+|	< ABS: "abs" >
+|	< ASIN: "asin" >
+|	< ACOS: "acos" >
+|	< ATAN: "atan" >
+|	< SQRT: "sqrt" >
+|	< FLOOR: "floor" >
+|	< CEIL: "ceil" >
+|	< SIGN: "sign" >
+|	< ECHO: "echo" >
+|	< TODEGREES: "toDegrees" >
+|	< TORADIANS: "toRadians" >
+}
+
+TOKEN :
+{
+    < #DIGITS : (["0"-"9"])+ >
+}
+
+TOKEN :
+{
+    < #CHARACTERS : (["a"-"z","A"-"Z","_","0"-"9"," ","%",".","+","-","/","*","=",">","<",",",";","$","&","#","@",":","(",")","!","?"])+ >
+}
+
+TOKEN :
+{
+
+    < TYPE: "int" | "float" | "bool" | "string" | "int[]" | "float[]" | "bool[]" | "string[]" | "var" >
+|   < RETURN: "return" >
+|   < BREAK: "break" >
+|   < FIELD: "->" >
+|   < IF: "if" >
+|   < ELSE: "else" >
+|   < WHILE: "while" >
+|   < IDENTIFIER: (["a"-"z","A"-"Z","_"]) (["a"-"z","A"-"Z","_","0"-"9",".","#"])* >
+|   < DOLLAR_VAR: ("$" ["0"-"9"])+ >
+|   < VALUE: <DIGITS> | <DIGITS> "." <DIGITS> | "+" <DIGITS> "." <DIGITS> | "-" <DIGITS> "." <DIGITS> >
+|   < TEXT: "\"" <CHARACTERS> "\"" >
+|   < OPENCURLY: "{" >
+|   < SEMICOLON: ";" >
+|   < COMMA: "," >
+|   < OPENPARENTHESIS: "(" >
+|   < CLOSEPARENTHESIS: ")" >
+|   < OPENBRACKET: "[" >
+|   < CLOSEBRACKET: "]" >
+|   < CLOSECURLY: "}" >
+|   < COMMENT: "/*" <CHARACTERS> "*/" >
+
+}
+
+void parse() :
+{
+}
+{
+      (block())+ <EOF>
+}
+
+void block() :
+{
+}
+{
+      ((increment() | decrement() | affect() | arrayAffect() | addAssign() | subAssign() | multAssign() | divAssign() 
+        | typedAffect() | choice() | whileExpr() | <COMMENT> | breakExpr() | (<RETURN>)? expr())| semicolon())
+}
+
+void breakExpr() :
+{
+    Token t;
+}
+{
+  (<BREAK>) {
+       ExprBREAK breakExpr = new ExprBREAK();
+       push(breakExpr);
+  }
+}
+
+void whileExpr() :
+{
+}
+{
+      (whileToken() openCurly() (block())+ closeCurly()) 
+}
+
+void choice() :
+{
+}
+{
+      (ifToken() openCurly() (block())+ closeCurly() 
+       (elseif() openCurly() (block())+ closeCurly())* 
+       (elseExpression())? ) {
+         choices.pop();
+       }
+}
+
+void semicolon() :
+{
+    Token t;
+}
+{
+  ((<SEMICOLON>)) {
+      checkSemiColon = true;
+  }
+}
+
+void comma() :
+{
+    Token t;
+}
+{
+  (<COMMA>) {
+     Expression expr = argStack.pop();
+     if (paramStack.isEmpty()) {
+        Stack<Expression> args = new Stack();
+        paramStack.push(args);
+        args.push(expr);
+     } else {
+        paramStack.peek().push(expr);
+     } 
+     argStack = new Stack();
+  }
+}
+
+void openCurly() :
+{
+    Token t;
+}
+{
+  (<OPENCURLY>) {
+     CodeBlock block = new CodeBlock();
+     if (! blocks.isEmpty()) {
+        block.setParentBlock(blocks.peek());
+     }
+     blocks.push(block);
+  }
+}
+
+void whileToken() :
+{
+    Token t;
+}
+{
+     ((t=<WHILE>) expr() {
+       ExprWHILE whileExpr = new ExprWHILE();
+       whiles.push(whileExpr);
+       Expression condition = argStack.pop();
+       whileExpr.setCondition(condition);
+       curly.push(TYPE_WHILE);
+       push(whileExpr);
+     }
+    )
+}
+
+void ifToken() :
+{
+    Token t;
+}
+{
+     ((t=<IF>) expr() {
+       ExprCHOICE choice = new ExprCHOICE();
+       choices.push(choice);
+       Expression condition = argStack.pop();
+       choice.addCondition(condition);
+       curly.push(TYPE_CHOICE);
+       push(choice);
+     }
+    )
+}
+
+void elseif() :
+{
+    Token t;
+}
+{
+     ((t=<ELSE> <IF>) expr() {
+       Expression condition = argStack.pop();
+       curly.push(TYPE_CHOICE);
+       choices.peek().addCondition(condition);
+     }
+    )
+}
+
+void elseblock() :
+{
+    Token t;
+}
+{
+     (t=<ELSE>) {
+       curly.push(TYPE_CHOICE);
+     }
+}
+
+void elseExpression() :
+{
+    Token t;
+}
+{
+     (elseblock() openCurly() (block())+ closeCurly())
+}
+
+void closeCurlyArrayDeclaration() :
+{
+    Token t;
+}
+{
+  (<CLOSECURLY>) {
+     Expression expr = argStack.pop();
+     if (paramStack.isEmpty()) {
+        Stack<Expression> args = new Stack();
+        paramStack.push(args);
+        args.push(expr);
+     } else {
+        paramStack.peek().push(expr);
+     } 
+     argStack = new Stack();
+  }
+}
+
+void closeCurly() :
+{
+    Token t;
+}
+{
+  (<CLOSECURLY>) {
+      Expression expr = argStack.pop();
+      if (curly.peek().equals(TYPE_WHILE)) {
+         if (blocks.empty()) {
+            whiles.peek().setExpression(expr);
+         } else {
+            blocks.peek().addExpression(expr);
+            whiles.peek().setExpression(blocks.peek());
+            blocks.pop();
+         }
+      } else {
+         if (blocks.empty()) {
+            choices.peek().addExpression(expr);
+         } else {
+            blocks.peek().addExpression(expr);
+            choices.peek().addExpression(blocks.peek());
+            blocks.pop();
+         }
+      }
+      curly.pop();
+  }
+}
+
+void openPar() :
+{
+    Token t;
+}
+{
+  (<OPENPARENTHESIS>) {
+     checkSemiColon();
+     functionsStack.push(argStack); 
+     argStack = new Stack();
+     paramStack.push(new Stack());
+  }
+}
+
+void closePar() :
+{
+    Token t;
+}
+{
+  (<CLOSEPARENTHESIS>) {
+      Expression expr = argStack.pop();
+      paramStack.peek().push(expr); 
+  }
+}
+
+void typedAffect() :
+{
+    Token t;
+}
+{
+     ((t=<TYPE>) affectInType() {
+        affectType = t.image;
+        if (t != null) {
+           if (blocks.isEmpty()) {
+              CodeBlock block = new CodeBlock();
+              blocks.push(block);
+           }
+           affect.setParentBlock(blocks.peek());
+           setVariableType(affectVariable, t.image);
+           affect.addLocalVariable(affectVariable);
+           affect = null;
+        }
+        }
+    )
+}
+
+void increment() :
+{
+    Token t;
+}
+{
+     ((t=<IDENTIFIER>) <INCREMENT> {
+         Variable var = getVariable(t.image);
+         if (var == null) {
+            if (!acceptUndefVars) throw new ParseException(t.image + " variable undefined");
+            else {
+               var = new Variable(t.image);
+            }
+          }
+
+          ExprIncrement increment = new ExprIncrement();
+          increment.setVariable(var);
+          push(increment);
+        }
+    )
+}
+
+void decrement() :
+{
+    Token t;
+}
+{
+     ((t=<IDENTIFIER>) <DECREMENT> {
+         Variable var = getVariable(t.image);
+         if (var == null) {
+            if (!acceptUndefVars) throw new ParseException(t.image + " variable undefined");
+            else {
+               var = new Variable(t.image);
+            }
+          }
+
+          ExprDecrement decrement = new ExprDecrement();
+          decrement.setVariable(var);
+          push(decrement);
+        }
+    )
+}
+
+void affect() :
+{
+    Token t;
+}
+{
+     ((t=<IDENTIFIER>) <AFFECTATION> expr() {
+         affectVariable = getVariable(t.image);
+         if (affectVariable == null) {
+            if (!acceptUndefVars) throw new ParseException(t.image + " variable undefined");
+            else {
+               affectVariable = new Variable(t.image);
+            }
+          }
+
+          Expression e1 = null;
+          if (! argStack.empty()) {
+             e1 = argStack.pop();
+          }
+          affect = new ExprAffectation();
+          affect.setResult(affectVariable);
+          affect.setExpression(e1);
+          
+          push(affect);
+        }
+    )
+}
+
+void arrayAffect() :
+{
+    Token t;
+}
+{
+     ((t=<IDENTIFIER>) <OPENBRACKET> expr() <CLOSEBRACKET> (<AFFECTATION> expr())? {
+          Expression e1 = null;
+          if (! argStack.empty()) {
+             e1 = argStack.pop();
+          }
+
+          Expression index = null;
+          if (! argStack.empty()) {
+             index = argStack.pop();
+          }
+          if (index == null) {
+            Value v = null;
+            if (constants.hasConstant(t.image)) {
+              v = constants.getConstant(t.image);
+            } else {
+              v = getVariable(t.image);
+            }
+            if (v == null) {
+               if (!acceptUndefVars) throw new ParseException(t.image + " variable undefined");
+               else {
+                 v = new Variable(t.image);
+                 equation.getVariables().put(t.image, (Variable)v);
+               }
+             }
+            index = e1;
+            ExprArrayIndex arrayIndex = new ExprArrayIndex();
+            arrayIndex.setValue(v);
+            arrayIndex.setExpression(index);
+            push(arrayIndex);
+          } else {
+             affectVariable = getVariable(t.image);
+             if (affectVariable == null) {
+                if (!acceptUndefVars) throw new ParseException(t.image + " variable undefined");
+                else {
+                  affectVariable = new Variable(t.image);
+                }
+             }
+             ExprArrayAffect affect = new ExprArrayAffect();
+             affect.setArray(affectVariable);
+             affect.setIndex(index);
+             affect.setExpression(e1);
+             push(affect);
+          }
+        }
+    )
+}
+
+void addAssign() :
+{
+    Token t;
+}
+{
+     ((t=<IDENTIFIER>) <ADDASSIGNMENT> expr() {
+         affectVariable = getVariable(t.image);
+         if (affectVariable == null) {
+            if (!acceptUndefVars) throw new ParseException(t.image + " variable undefined");
+            else {
+               affectVariable = new Variable(t.image);
+            }
+          }
+
+          Expression e1 = null;
+          if (! argStack.empty()) {
+             e1 = argStack.pop();
+          }
+          ExprAddAssignment affect = new ExprAddAssignment();
+          affect.setResult(affectVariable);
+          affect.setExpression(e1);
+          push(affect);
+        }
+    )
+}
+
+void multAssign() :
+{
+    Token t;
+}
+{
+     ((t=<IDENTIFIER>) <MULTASSIGNMENT> expr() {
+         affectVariable = getVariable(t.image);
+         if (affectVariable == null) {
+            if (!acceptUndefVars) throw new ParseException(t.image + " variable undefined");
+            else {
+               affectVariable = new Variable(t.image);
+            }
+          }
+
+          Expression e1 = null;
+          if (! argStack.empty()) {
+             e1 = argStack.pop();
+          }
+          ExprMultAssignment affect = new ExprMultAssignment();
+          affect.setResult(affectVariable);
+          affect.setExpression(e1);
+          push(affect);
+        }
+    )
+}
+
+void divAssign() :
+{
+    Token t;
+}
+{
+     ((t=<IDENTIFIER>) <DIVASSIGNMENT> expr() {
+         affectVariable = getVariable(t.image);
+         if (affectVariable == null) {
+            if (!acceptUndefVars) throw new ParseException(t.image + " variable undefined");
+            else {
+               affectVariable = new Variable(t.image);
+            }
+          }
+
+          Expression e1 = null;
+          if (! argStack.empty()) {
+             e1 = argStack.pop();
+          }
+          ExprDivAssignment affect = new ExprDivAssignment();
+          affect.setResult(affectVariable);
+          affect.setExpression(e1);
+          push(affect);
+        }
+    )
+}
+
+void subAssign() :
+{
+    Token t;
+}
+{
+     ((t=<IDENTIFIER>) <SUBASSIGNMENT> expr() {
+         affectVariable = getVariable(t.image);
+         if (affectVariable == null) {
+            if (!acceptUndefVars) throw new ParseException(t.image + " variable undefined");
+            else {
+               affectVariable = new Variable(t.image);
+            }
+          }
+
+          Expression e1 = null;
+          if (! argStack.empty()) {
+             e1 = argStack.pop();
+          }
+          ExprSubAssignment affect = new ExprSubAssignment();
+          affect.setResult(affectVariable);
+          affect.setExpression(e1);
+          push(affect);
+        }
+    )
+}
+
+void affectInType() :
+{
+    Token t;
+}
+{
+     ((t=<IDENTIFIER>) <AFFECTATION> expr() {
+          affectVariable = new Variable(t.image);
+          Expression e1 = null;
+          if (! argStack.empty()) {
+             e1 = argStack.pop();
+          }
+          affect = new ExprAffectation();
+          if (! blocks.empty()) {
+             blocks.peek().addExpression(affect);
+          }
+          affect.setResult(affectVariable);
+          affect.setExpression(e1);
+          push(affect);
+        }
+    )
+}
+
+void arrayDeclaration() :
+{
+    Token t;
+}
+{
+     (<OPENCURLY> FormalParameters() closeCurlyArrayDeclaration() {
+        int size = 0;
+        if (! paramStack.isEmpty()) {
+           size = paramStack.peek().size();
+        }
+            ExprArray exprArray = new ExprArray();
+            addArguments(exprArray);
+            push(exprArray);
+        }
+     )
+}
+
+void expr() :
+{
+    Token t;
+}
+{
+  ( (unary() | arrayDeclaration() | exprWithoutFirst() | exprWithFirst() ) (exprManyMULTDIVIDE() | exprContinuation())* )
+}
+
+void exprWithoutFirst() :
+{
+    Token t;
+}
+{
+     ( (t=<ADD>|t=<SUB>) unary() {
+            Expression e1 = null;
+            if (! argStack.empty()) {
+                e1 = argStack.pop();
+            }
+            AryExpression e = null;
+            if (t.kind == ADD) e = new ExprADD();
+            else if (t.kind == SUB) e = new ExprSUB();
+            e.setExpression1(e1);
+            push(e);
+        }
+    )
+}
+
+void exprWithFirst() :
+{
+    Token t;
+}
+{
+    (unary()) (
+        (t=<AND>|t=<OR>|t=<XOR>|t=<ADD>|t=<SUB>|t=<MULT>|t=<DIV>|t=<MOD>|t=<EQ>|t=<NEQ>|t=<LT>|t=<LE>|t=<GT>|t=<GE>) 
+        (exprManyMULTDIVIDE() | unary()) {
+            Expression e1 = argStack.pop();
+            Expression e2 = null;
+            if (! ((t.kind == ADD) || (t.kind == SUB))) {
+                if (argStack.empty()) {
+                    throw new ParseException(t.image + " unbalanced expression");
+                }
+            }
+            if (! argStack.empty()) {
+                e2 = argStack.pop();
+            }
+            AryExpression e = null;
+            if (t.kind == AND) e = new ExprAND();
+            else if (t.kind == OR) e = new ExprOR();
+            else if (t.kind == XOR) e = new ExprXOR();
+            else if (t.kind == ADD) e = new ExprADD();
+            else if (t.kind == SUB) e = new ExprSUB();
+            else if (t.kind == MULT) e = new ExprMULT();
+            else if (t.kind == DIV) e = new ExprDIV();
+            else if (t.kind == EQ) e = new ExprEQ();
+            else if (t.kind == NEQ) e = new ExprNEQ();
+            else if (t.kind == LT) e = new ExprLT();
+            else if (t.kind == LE) e = new ExprLE();
+            else if (t.kind == GT) e = new ExprGT();
+            else if (t.kind == GE) e = new ExprGE();
+            else if (t.kind == MOD) e = new ExprMOD();
+            e.setExpression1(e1);
+            e.setExpression2(e2);
+            push(e);
+        }
+    )
+}
+
+void exprManyMULTDIVIDE() :
+{
+    Token t;
+}
+{
+    (exprMULTDIVIDEContinuation() (exprMULTDIVIDE())*) {
+    }
+}
+
+void exprMULTDIVIDEContinuation() :
+{
+    Token t;
+}
+{
+    ((t=<MULT>|t=<DIV>) unary() {
+            Expression e1 = argStack.pop();
+            Expression e2 = null;
+            if (! ((t.kind == MULT) || (t.kind == DIV))) {
+                if (argStack.empty()) {
+                    throw new ParseException(t.image + " unbalanced expression");
+                }
+            }
+            if (! argStack.empty()) {
+                e2 = argStack.pop();
+            }
+            AryExpression e = null;
+            if (t.kind == MULT) e = new ExprMULT();
+            else if (t.kind == DIV) e = new ExprDIV();
+            e.setExpression1(e1);
+            e.setExpression2(e2);
+            push(e);
+        }
+    )
+}
+
+void exprMULTDIVIDE() :
+{
+    Token t;
+}
+{
+    (unary())? (
+        (t=<MULT>|t=<DIV>) unary() {
+            Expression e1 = argStack.pop();
+            Expression e2 = null;
+            if (! ((t.kind == MULT) || (t.kind == DIV))) {
+                if (argStack.empty()) {
+                    throw new ParseException(t.image + " unbalanced expression");
+                }
+            }
+            if (! argStack.empty()) {
+                e2 = argStack.pop();
+            }
+            AryExpression e = null;
+            if (t.kind == MULT) e = new ExprMULT();
+            else if (t.kind == DIV) e = new ExprDIV();
+            e.setExpression1(e1);
+            e.setExpression2(e2);
+            push(e);
+        }
+    )
+}
+
+void exprContinuation() :
+{
+    Token t;
+}
+{
+    ((unary())?) (
+        (t=<AND>|t=<OR>|t=<XOR>|t=<ADD>|t=<SUB>|t=<MOD>|t=<EQ>|t=<NEQ>|t=<LT>|t=<LE>|t=<GT>|t=<GE>) 
+         (unary()) {
+            Expression e1 = argStack.pop();
+            Expression e2 = null;
+            if (! ((t.kind == ADD) || (t.kind == SUB))) {
+                if (argStack.empty()) {
+                    throw new ParseException(t.image + " unbalanced expression");
+                }
+            }
+            if (! argStack.empty()) {
+                e2 = argStack.pop();
+            }
+            AryExpression e = null;
+            if (t.kind == AND) e = new ExprAND();
+            else if (t.kind == OR) e = new ExprOR();
+            else if (t.kind == XOR) e = new ExprXOR();
+            else if (t.kind == ADD) e = new ExprADD();
+            else if (t.kind == SUB) e = new ExprSUB();
+            else if (t.kind == EQ) e = new ExprEQ();
+            else if (t.kind == NEQ) e = new ExprNEQ();
+            else if (t.kind == LT) e = new ExprLT();
+            else if (t.kind == LE) e = new ExprLE();
+            else if (t.kind == GT) e = new ExprGT();
+            else if (t.kind == GE) e = new ExprGE();
+            else if (t.kind == MOD) e = new ExprMOD();
+            e.setExpression1(e1);
+            e.setExpression2(e2);
+            push(e);
+        }
+    )
+}
+
+void unary() :
+{
+    Token t;
+}
+{
+    (t=<NOT>|t=<SIN>|t=<COS>|t=<TAN>|t=<ACOS>|t=<ASIN>|t=<ATAN>|t=<ABS>|t=<SQRT>|t=<CEIL>|t=<FLOOR>|
+     t=<TODEGREES>|t=<TORADIANS>|t=<SIGN>|t=<ECHO>) element() {
+        UnaryExpression e = null;
+        Expression e1 = argStack.pop();
+        if (t.kind == NOT) e = new ExprNOT();
+        else if (t.kind == SIN) e = new ExprSIN();
+        else if (t.kind == COS) e = new ExprCOS();
+        else if (t.kind == TAN) e = new ExprTAN();
+        else if (t.kind == ASIN) e = new ExprASIN();
+        else if (t.kind == ACOS) e = new ExprACOS();
+        else if (t.kind == ATAN) e = new ExprATAN();
+        else if (t.kind == SQRT) e = new ExprSQRT();
+        else if (t.kind == CEIL) e = new ExprCEIL();
+        else if (t.kind == FLOOR) e = new ExprFLOOR();
+        else if (t.kind == ABS) e = new ExprABS();
+        else if (t.kind == SIGN) e = new ExprSIGN();
+        else if (t.kind == ECHO) e = new ExprECHO();
+        else if (t.kind == TODEGREES) e = new ExprToDegrees();
+        else if (t.kind == TORADIANS) e = new ExprToRadians();
+        e.setExpression(e1);
+        push(e);
+    }
+    | (t=<IDENTIFIER>) <OPENBRACKET> expr() <CLOSEBRACKET> {
+        ExprArrayIndex e = new ExprArrayIndex();
+        Value v = null;
+        if (constants.hasConstant(t.image)) {
+            v = constants.getConstant(t.image);
+        } else {
+            v = getVariable(t.image);
+        }
+        if (v == null) {
+            if (!acceptUndefVars) throw new ParseException(t.image + " variable undefined");
+            else {
+                v = new Variable(t.image);
+                equation.getVariables().put(t.image, (Variable)v);
+            }
+        }
+        e.setValue(v);
+        Expression e1 = argStack.pop();
+        e.setExpression(e1);
+        push(e);
+    }
+    | (t=<IDENTIFIER>) openPar() FormalParameters() closePar() {
+        int size = 0;
+        if (! paramStack.isEmpty()) {
+           size = paramStack.peek().size();
+        }
+        if ((t.image.equals("format")) && (size == 2)) {
+            ExprFORMAT exprFormat = new ExprFORMAT();
+            addArguments(exprFormat);
+            push(exprFormat);
+        } else if ((t.image.equals("atn2")) && (size == 2)) {
+            ExprATAN2 exprAtan2 = new ExprATAN2();
+            addArguments(exprAtan2);
+            push(exprAtan2);
+        } else if ((t.image.equals("pow")) && (size == 2)) {
+            ExprPOW exprPow = new ExprPOW();
+            addArguments(exprPow);
+            push(exprPow);
+        } else {
+            exprFunction = new ExprFunction(t.image, size);
+            addArguments(exprFunction);
+            push(exprFunction);
+        }
+        closePar2();
+    }
+    |  element()
+}
+
+void FormalParameters() :
+{
+    Token t;
+}
+{
+  (((block())+ | expr()) ( comma() ((block())+ | expr()) )*)
+}
+
+void element() :
+{
+    Token t;
+}
+{
+    ((t = <IDENTIFIER>|t = <DOLLAR_VAR>|t = <VALUE>|t = <TEXT>) {
+        Expression e = null;
+        if ((! t.image.equals("return")) && (t.kind == IDENTIFIER)) {
+            if (t.image.equals("PI")) {
+                e = equation.createPIConstant(Math.PI);
+            } else if (t.image.equals("true")) {
+                e = equation.createBooleanConstant(true);
+            } else if (t.image.equals("false")) {
+                e = equation.createBooleanConstant(false);
+            } else if (constants.hasConstant(t.image)) {
+                e = constants.getConstant(t.image);
+            } else {
+                e = getVariable(t.image);
+                if (e == null) {
+                    if (!acceptUndefVars) throw new ParseException(t.image + " variable undefined");
+                    else {
+                        e = new Variable(t.image);
+                        equation.getVariables().put(t.image, (Variable)e);
+                    }
+                }
+            }
+        } else if (t.kind == DOLLAR_VAR) {
+            e = equation.getDollarVariable(t.image);
+            if ((e == null) && (!acceptUndefVars)) throw new ParseException(t.image + " variable undefined");
+        } else if (t.kind != RETURN) {
+            e = equation.createConstant(t.image);
+        }
+        if (e != null) {
+           push(e);
+        }
+    }
+    | <OPENPARENTHESIS> expr() <CLOSEPARENTHESIS>)
+}
+
