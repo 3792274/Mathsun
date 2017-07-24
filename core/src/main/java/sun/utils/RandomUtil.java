@@ -26,7 +26,7 @@ public class RandomUtil {
 
     /******************************************************************************************************************/
 
-    /**
+       /**
      * 整数(包括负数) - [a, b] - rand()%(b-a+1)+a
      */
     public static int getRandomIntBetweenAA(int min,int max) {
@@ -39,7 +39,7 @@ public class RandomUtil {
         if(min > max){
             return (int)(Math.random()*(min-max+1))+max;
         }
-       return 0;
+        return 0;
     }
 
 
@@ -275,7 +275,6 @@ public class RandomUtil {
 
   /******************************************************************************************************************/
   Operator greaterEq = new Operator(">=", 2, true, 4) {
-
       @Override
       public double apply(double[] values) {
           if (values[0] >= values[1]) {
@@ -287,7 +286,6 @@ public class RandomUtil {
   };
 
     Operator greater = new Operator(">", 2, true, 4) {
-
         @Override
         public double apply(double[] values) {
             if (values[0] > values[1]) {
@@ -311,7 +309,6 @@ public class RandomUtil {
   };
 
     Operator smaller = new Operator("<", 2, true, 4) {
-
         @Override
         public double apply(double[] values) {
             if (values[0] < values[1]) {
@@ -324,7 +321,6 @@ public class RandomUtil {
 
 
     Operator eq = new Operator("=", 2, true, 4) {
-
         @Override
         public double apply(double[] values) {
             if (values[0] == values[1]) {
@@ -338,7 +334,6 @@ public class RandomUtil {
 
 
     Operator notEq = new Operator("!=", 2, true, 4) {
-
         @Override
         public double apply(double[] values) {
             if (values[0] != values[1]) {
