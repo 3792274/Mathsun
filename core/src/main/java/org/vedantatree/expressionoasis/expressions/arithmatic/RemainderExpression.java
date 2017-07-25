@@ -48,11 +48,15 @@ public class RemainderExpression extends BinaryOperatorExpression
 
 	static
 	{
-		addTypePair( RemainderExpression.class, Type.LONG, Type.LONG, Type.LONG );
+		addTypePair( RemainderExpression.class, Type.LONG, Type.LONG, Type.DOUBLE );
+
+		//后添加
+		addTypePair( RemainderExpression.class, Type.DOUBLE, Type.LONG,   Type.DOUBLE );
+		addTypePair( RemainderExpression.class, Type.DOUBLE, Type.DOUBLE, Type.DOUBLE );
 
 		// nullable type support
-		addTypePair( RemainderExpression.class, Type.LONG, Type.OBJECT, Type.LONG );
-		addTypePair( RemainderExpression.class, Type.OBJECT, Type.LONG, Type.LONG );
+		addTypePair( RemainderExpression.class, Type.LONG, Type.OBJECT, Type.DOUBLE );
+		addTypePair( RemainderExpression.class, Type.OBJECT, Type.LONG, Type.DOUBLE );
 
 	}
 
@@ -69,7 +73,7 @@ public class RemainderExpression extends BinaryOperatorExpression
 
 		if( leftValue != null && rightValue != null )
 		{
-			result = new Long( ( (Number) leftValue ).longValue() % ( (Number) rightValue ).longValue() );
+			result = new Double( ( (Number) leftValue ).doubleValue() % ( (Number) rightValue ).doubleValue() );
 		}
 
 		return new ValueObject( result, getReturnType() );

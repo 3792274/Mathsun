@@ -194,6 +194,16 @@ public class TestEvaluator
 		assertEquals( false, result.booleanValue() );
 
 
+		expression = "0<1&&1<10";
+		result = (Boolean) ExpressionEngine.evaluate( expression, expressionContext );
+		assertEquals( true, result.booleanValue() );
+
+	    expression = "6%1==0";
+		result = (Boolean) ExpressionEngine.evaluate( expression, expressionContext );
+		assertEquals( true, result.booleanValue() );
+
+
+
 		expression = "1/2 == 2/2";
 		result = (Boolean) ExpressionEngine.evaluate( expression, expressionContext );
 		assertEquals( false, result.booleanValue() );
