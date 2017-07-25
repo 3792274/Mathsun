@@ -11,7 +11,7 @@ import org.springframework.web.servlet.config.annotation.EnableWebMvc;
 @Controller
 @EnableCaching
 @EnableWebMvc
-@ComponentScan(basePackages = {"sun.math"})
+@ComponentScan(basePackages = {"sun"})
 @SpringBootApplication
 public class Main {
     private static final Logger log =  LoggerFactory.getLogger(Main.class);

@@ -14,6 +14,7 @@ import org.vedantatree.expressionoasis.ExpressionEngine;
 
 import java.text.NumberFormat;
 import java.util.*;
+import java.util.concurrent.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -347,7 +348,7 @@ public static  int pointLength(String strNumber){
 
 
     /*生成一对符合参数规则的变量和值*/
-    private  Map<String,String>  getRandomParmAndValue(Map<String, String> paramMap) throws Exception {
+    private static  Map<String,String>   getRandomParmAndValue(Map<String, String> paramMap) throws Exception {
         Map<String,String> parmAndValue = Maps.newHashMap();
         ExpressionContext expressionContext = new ExpressionContext();
         String exp = paramMap.get("exp");
@@ -391,7 +392,7 @@ public static  int pointLength(String strNumber){
   /******************************************************************************************************************/
 
       /*当前时间纳秒*/
-      private long getNowMilliSecond() {
+      private static long getNowMilliSecond() {
           return System.nanoTime()/1000000L;
       }
 
@@ -401,15 +402,6 @@ public static  int pointLength(String strNumber){
 
     @Test
     public void test04() throws Exception {
-//        Map<String, String> paramMap = new HashMap<String, String>() {
-//            {
-//                put("exp", "a/b=c");  //公式,表达式右边只有1个变量
-//                put("a", "1.0<a<30"); //取值范围 put("a", " && 0 <= a <= 10 && a>3 && a<9 && a=4 && a>b || a!=(6-b)/2");
-//                put("b", "1.00<b<30");        //取值范围 // put("b", "b<=a || b<10");
-//                put("c", "0<=c<=30 && c%1!=0");     //结果范围
-//            }
-//        };
-
         Map<String, String> paramMap = new HashMap<String, String>() {
             {
                 put("exp", "a*c+b*c=d");  //公式,表达式右边只有1个变量
@@ -417,63 +409,72 @@ public static  int pointLength(String strNumber){
                 put("b", "0<b<100");    //取值范围 // put("b", "b<=a || b<10");
                 put("c", "1<c<99");     //结果范围
                 put("d", "0<d<500");     //结果范围
-                //put("otherExp", "a+b==100 || a+b==10");     //其他约束
+                put("otherExp", "a+b==100 || a+b==10");     //其他约束
 
             }
         };
 
 
+        int sum=50; //总题数
+        int timeout=20; //超时时间秒
         // getVariable(str1);
 
-        String exp = paramMap.get("exp");
-        String otherExp = paramMap.get("otherExp");
-        HashSet<String> resultSet = Sets.newHashSet();
-
-        int sum=50; //总题数
-        int timeout=50; //超时时间秒
-
-        long startMilliSecond = getNowMilliSecond();
-        ExpressionContext expressionContext = new ExpressionContext();
-
-        while (true){
-                 Map<String,String> parmAndValue = getRandomParmAndValue(paramMap); //符合条件的随机变量值
-
-                String expRight = wipperVerable(splitExpByEq(exp)[0],parmAndValue);
-                Number expRightResult = (Number) ExpressionEngine.evaluate( expRight, expressionContext ); //等号左边值
-
-                String  expLeftVarablue =   getVariable(splitExpByEq(exp)[1]).toArray(new String[0])[0];//等号右边变量名
-                String expLeftVarablueExp  = paramMap.get(expLeftVarablue);//等号右边变量名，范围
-
-                String finalExpResult = wipperVerable(convertExp(expLeftVarablueExp), expRightResult);//等号左边的计算结果，替换等号右边的表达式值
-                Boolean expLeftResult = (Boolean) ExpressionEngine.evaluate( finalExpResult , expressionContext );//等号左边的计算结果是否在给定范围
-
-
-
-                //找到结果后退出
-                if(expLeftResult){
-                    resultSet.add("".concat(expRight+"="+expRightResult).replaceAll("/","÷")); //去掉重复
-                    if(resultSet.size()==sum){
-                        break;
-                    }
-                }
-
-                //超时后退出
-                if(getNowMilliSecond()-startMilliSecond>=timeout*1000L){
-                    log.error("超时："+timeout+" 秒。");
-                    break;
-                }
-
-            }
-
-
-
-        System.out.println(resultSet);
-
+        HashSet<String> resultSet = generatorRex(sum,timeout,paramMap);
+        System.out.println("---------------------------");
+        System.out.println(resultSet.size());
+        System.out.println("---------------------------");
 
     }
 
 
+    public static HashSet<String> generatorRex(int sum, int timeout, Map<String, String> paramMap) throws Exception {
+        String exp = paramMap.get("exp");
+        String otherExp = paramMap.get("otherExp");
+        HashSet<String>  resultSet = Sets.newHashSet();
+        long startMilliSecond = getNowMilliSecond();
+        ExpressionContext expressionContext = new ExpressionContext();
 
+
+        final ExecutorService executor = Executors.newFixedThreadPool(sum);
+        FutureTask<HashSet<String>> future = null;
+
+        for (int i = 0; i < sum; i++) {
+            future = new FutureTask<HashSet<String>>(
+                    new Callable<HashSet<String>>() {
+                        public HashSet<String> call() throws Exception {
+                            while (true &&  resultSet.size()<sum){
+
+                                Map<String,String> parmAndValue = getRandomParmAndValue(paramMap); //符合条件的随机变量值
+
+                                String expRight = wipperVerable(splitExpByEq(exp)[0],parmAndValue);
+                                Number expRightResult = (Number) ExpressionEngine.evaluate( expRight, expressionContext ); //等号左边值
+
+                                String  expLeftVarablue =   getVariable(splitExpByEq(exp)[1]).toArray(new String[0])[0];//等号右边变量名
+                                String expLeftVarablueExp  = paramMap.get(expLeftVarablue);//等号右边变量名，范围
+
+                                String finalExpResult = wipperVerable(convertExp(expLeftVarablueExp), expRightResult);//等号左边的计算结果，替换等号右边的表达式值
+                                Boolean expLeftResult = (Boolean) ExpressionEngine.evaluate( finalExpResult , expressionContext );//等号左边的计算结果是否在给定范围
+
+                                    //找到结果后退出
+                                    if(expLeftResult){
+                                        resultSet.add("".concat(expRight+"="+expRightResult).replaceAll("/","÷")); //去掉重复
+                                    }
+                            }
+                            return resultSet;
+                        }
+                    });
+            executor.execute(future);
+
+        }
+        try{
+            future.get(timeout, TimeUnit.SECONDS);
+        }catch (Exception ex){
+            System.out.println(ex);
+            return resultSet;
+        }
+
+        return resultSet;
+    }
 
     /******************************************************************************************************************/
 
