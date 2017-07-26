@@ -439,7 +439,7 @@ public static  int pointLength(String strNumber){
     public static Set<String> generatorRex(int sum, int timeout, Map<String, String> paramMap) throws Exception {
         String exp = paramMap.get("exp");
         String otherExp = paramMap.get("otherExp");
-        final Set<String>  resultSet = Sets.newConcurrentHashSet();
+        final Set<String>  resultSet = Sets.newHashSet();
         long startMilliSecond = getNowMilliSecond();
 
 
@@ -453,7 +453,6 @@ public static  int pointLength(String strNumber){
                             Random random = ThreadLocalRandom.current();
                             while (true && resultSet.size()<sum){
                                 Map<String,String> parmAndValue = getRandomParmAndValue(paramMap,random); //符合条件的随机变量值
-
                                 String expRight = wipperVerable(splitExpByEq(exp)[0],parmAndValue);
                                 Number expRightResult = (Number) ExpressionEngine.evaluate( expRight, expressionContext ); //等号左边值
 
@@ -465,7 +464,7 @@ public static  int pointLength(String strNumber){
 
                                 //找到结果后退出
                                 if(expLeftResult && resultSet.size()<sum){
-                                   System.out.println(Thread.currentThread().getName() + "找到结果前，size:"+ resultSet.size());
+                                    //System.out.println(Thread.currentThread().getName() + "找到结果前，size:"+ resultSet.size());
                                     resultSet.add("".concat(expRight+"="+expRightResult).replaceAll("/","÷").replaceAll("\\*","×")); //去掉重复
                                 }
                             }
