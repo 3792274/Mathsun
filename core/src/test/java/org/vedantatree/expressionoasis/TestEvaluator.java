@@ -152,6 +152,11 @@ public class TestEvaluator
 		result = (Number) ExpressionEngine.evaluate( expression, expressionContext );
 		assertEquals( -1, result.intValue() );
 
+
+	    expression = "0.94*59"; //=58.99999999999999
+		result = (Number) ExpressionEngine.evaluate( expression, expressionContext );
+		assertEquals( -1, result.intValue() );
+
 		expression = "20 - (10/-2 + (-5 * -2)) / (15 * (-5/5) )";
 		result = (Number) ExpressionEngine.evaluate( expression, expressionContext );
 		assertEquals( 20.333333333333332, result.doubleValue(), 0 );

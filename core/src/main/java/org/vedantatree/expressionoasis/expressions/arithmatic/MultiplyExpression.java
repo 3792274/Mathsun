@@ -31,6 +31,7 @@ import org.vedantatree.expressionoasis.expressions.BinaryOperatorExpression;
 import org.vedantatree.expressionoasis.types.Type;
 import org.vedantatree.expressionoasis.types.ValueObject;
 
+import java.math.BigDecimal;
 
 /**
  * This class expression performs the multiplication ioperations.
@@ -81,7 +82,10 @@ public class MultiplyExpression extends BinaryOperatorExpression
 			}
 			else if( returnType == Type.DOUBLE )
 			{
-				result = new Double( ( (Number) leftValue ).doubleValue() * ( (Number) rightValue ).doubleValue() );
+				BigDecimal leftValueBig  = new BigDecimal(leftValue.toString());
+				BigDecimal rightValueBig = new BigDecimal(rightValue.toString());
+				result =  leftValueBig.multiply(rightValueBig).doubleValue();
+				System.out.println(result);
 			}
 		}
 

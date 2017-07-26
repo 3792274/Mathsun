@@ -19,6 +19,12 @@ public class Test01 {
 
 
     @Test
+    public void test02() throws ParseException {
+
+        System.out.println(0.94*59);
+    }
+
+    @Test
     public void test01() throws ParseException {
         Equation condition = EquationParser.parse("c=a+b");
         Map<String, Variable> vars = condition.getVariables();

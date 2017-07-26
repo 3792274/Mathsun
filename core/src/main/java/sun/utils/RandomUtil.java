@@ -415,7 +415,7 @@ public static  int pointLength(String strNumber){
         };
 
 
-        int sum=50; //总题数
+        int sum=100; //总题数
         int timeout=20; //超时时间秒
         // getVariable(str1);
 
