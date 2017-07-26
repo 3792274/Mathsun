@@ -2,6 +2,7 @@ package sun.controller;/**
  * Created by admin on 2017/7/25.
  */
 
+import com.google.common.collect.Sets;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -10,8 +11,8 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 import sun.utils.RandomUtil;
 
-import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * ************************
@@ -25,7 +26,7 @@ public class GeneratorRexContorller {
     private static final Logger log =  LoggerFactory.getLogger(GeneratorRexContorller.class);
 
     @RequestMapping(value = {"","/"},method = {RequestMethod.POST, RequestMethod.GET})  //,consumes={"application/json"}
-    public HashSet<String>   testGetReqPayInfoById(@RequestBody(required = false) Map<String,String> reqMap) {
+    public Set<String>   testGetReqPayInfoById(@RequestBody(required = false) Map<String,String> reqMap) {
         int sumRow=10; //总题数行
         int sumCol=5; //总题数列
         int timeout=25; //超时时间秒
@@ -41,13 +42,27 @@ public class GeneratorRexContorller {
          }
 
         try {
-              HashSet<String> resultSet = RandomUtil.generatorRex(sumRow*sumCol,timeout,reqMap);
+            Set<String> resultSet = RandomUtil.generatorRex(sumRow*sumCol,timeout,reqMap);
               return resultSet;
         }catch (Exception e){
             log.error(e.getMessage());
         }
        return null;
     }
+
+
+    /**
+     * 分析变量
+     */
+    @RequestMapping(value = {"/getVariable"},method = {RequestMethod.POST, RequestMethod.GET})
+    public  Set<String>  getVariable(@RequestBody(required = false) Map<String,String> reqMap) {
+        if(reqMap!=null && reqMap.containsKey("exp")){
+            return RandomUtil.getVariable(reqMap.get("exp"));
+        }
+      return Sets.newHashSet();
+    }
+
+
 
 
 }

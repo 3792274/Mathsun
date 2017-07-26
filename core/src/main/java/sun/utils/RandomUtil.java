@@ -11,6 +11,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.vedantatree.expressionoasis.ExpressionContext;
 import org.vedantatree.expressionoasis.ExpressionEngine;
+import org.vedantatree.expressionoasis.exceptions.ExpressionEngineException;
 
 import java.text.NumberFormat;
 import java.util.*;
@@ -25,23 +26,32 @@ import java.util.regex.Pattern;
  */
 public class RandomUtil {
 
-    public static  Random random = new Random();
-    private static final Logger log =  LoggerFactory.getLogger(RandomUtil.class);
+    private static final  Logger log =  LoggerFactory.getLogger(RandomUtil.class);
+    private static   ExpressionContext expressionContext;
+
+    static {
+        try {
+            expressionContext = new ExpressionContext();
+        } catch (ExpressionEngineException e) {
+            e.printStackTrace();
+        }
+    }
 
     /******************************************************************************************************************/
+
 
     /**
      * 整数(包括负数) - [a, b] - rand()%(b-a+1)+a
      */
-    public static int getRandomIntBetweenAA(int min,int max) {
+    public static int getRandomIntBetweenAA(int min,int max,Random random) {
         if (min == max) {
             return min;
         }
         if(min < max){
-            return   (int)(Math.random()*(max-min+1))+min;  // min 到max 之间的整数
+            return   (int)(random.nextDouble()*(max-min+1))+min;  // min 到max 之间的整数
         }
         if(min > max){
-            return (int)(Math.random()*(min-max+1))+max;
+            return (int)(random.nextDouble()*(min-max+1))+max;
         }
         return 0;
     }
@@ -51,15 +61,15 @@ public class RandomUtil {
     /**
      * 整数(包括负数) - (a, b] - rand()%(b-a)+(a+1)
      */
-    public static int getRandomIntBetweenBA(int min,int max) {
+    public static int getRandomIntBetweenBA(int min,int max,Random random) {
         if (min == max) {
             return min;
         }
         if(min < max){
-            return   (int)(Math.random()*(max-min))+(min+1);  // min 到max 之间的整数
+            return   (int)(random.nextDouble()*(max-min))+(min+1);  // min 到max 之间的整数
         }
         if(min > max){
-            return   (int)(Math.random()*(min-max))+(max+1);
+            return   (int)(random.nextDouble()*(min-max))+(max+1);
         }
         return 0;
     }
@@ -68,15 +78,15 @@ public class RandomUtil {
     /**
      * 整数(包括负数) - [a, b) - rand()%(b-a)+a
      */
-    public static int getRandomIntBetweenAB(int min,int max) {
+    public static int getRandomIntBetweenAB(int min,int max,Random random) {
         if (min == max) {
             return min;
         }
         if(min < max){
-            return   (int)(Math.random()*(max-min))+min;
+            return   (int)(random.nextDouble()*(max-min))+min;
         }
         if(min > max){
-            return   (int)(Math.random()*(min-max))+max;
+            return   (int)(random.nextDouble()*(min-max))+max;
         }
         return 0;
     }
@@ -85,15 +95,15 @@ public class RandomUtil {
     /**
      * 整数(包括负数) - (a, b)  - rand()%(b-a-1)+(a+1)
      */
-    public static int getRandomIntBetweenBB(int min,int max) {
+    public static int getRandomIntBetweenBB(int min,int max,Random random) {
         if (min == max) {
             return min;
         }
         if(min < max){
-            return   (int)(Math.random()*(max-min-1))+(min+1);
+            return   (int)(random.nextDouble()*(max-min-1))+(min+1);
         }
         if(min > max){
-            return   (int)(Math.random()*(min-max-1))+(max+1);
+            return   (int)(random.nextDouble()*(min-max-1))+(max+1);
         }
         return 0;
     }
@@ -103,17 +113,17 @@ public class RandomUtil {
     /**
      * 小数（包括负数） [a,b]
      */
-    public static double getRandomDoubleBetween(String minStr,String  maxStr) {
+    public static double getRandomDoubleBetween(String minStr,String  maxStr,Random random) {
         double min = Double.valueOf(minStr);
         double max = Double.valueOf(maxStr);
         if (min == max) {
             return min;
         }
         if(min < max){
-            return  formatDouble(Math.random()*(max-min)+min,minStr,maxStr);
+            return  formatDouble(random.nextDouble()*(max-min)+min,minStr,maxStr,random);
         }
         if(min > max){
-            return  formatDouble(Math.random()*(min-max)+max,maxStr,minStr);
+            return  formatDouble(random.nextDouble()*(min-max)+max,maxStr,minStr,random);
         }
         return 0;
     }
@@ -132,15 +142,15 @@ public static  int pointLength(String strNumber){
     /**
      * 通过小数点位数返回随机位数 0.39 0.399 返回2或者3
      */
-    public static int getRandomLengOfBehindPoint(String min,String max){
+    public static int getRandomLengOfBehindPoint(String min,String max,Random random){
         int minLength = pointLength(min);
         int maxLength = pointLength(min);
         if(minLength==maxLength)
             return minLength;
         if(minLength<maxLength)
-            return getRandomIntBetweenAA(minLength,maxLength);
+            return getRandomIntBetweenAA(minLength,maxLength,random);
         if(maxLength<minLength)
-            return getRandomIntBetweenAA(maxLength,minLength);
+            return getRandomIntBetweenAA(maxLength,minLength,random);
         return 0;
     }
 
@@ -148,9 +158,9 @@ public static  int pointLength(String strNumber){
     /*
      * 格式化double 0.3333 --> 0.3|0.33 |0.33
      */
-    public static double formatDouble(double d ,String minStr,String  maxStr){
+    public static double formatDouble(double d ,String minStr,String  maxStr,Random random){
         NumberFormat numberFormat  = NumberFormat.getInstance();
-        numberFormat.setMaximumFractionDigits(getRandomLengOfBehindPoint(minStr, maxStr));
+        numberFormat.setMaximumFractionDigits(getRandomLengOfBehindPoint(minStr, maxStr,random));
         return Double.parseDouble(numberFormat.format(d));
     }
 
@@ -161,7 +171,7 @@ public static  int pointLength(String strNumber){
      * @param str
      * @return
      */
-    private static Set<String> getVariable(String str) {
+    public static Set<String> getVariable(String str) {
         Set<String> set = new TreeSet<String>();
         String[] arr = str.split("[^a-zA-Z0-9]");
         for (String s : arr) {
@@ -267,11 +277,10 @@ public static  int pointLength(String strNumber){
 
 
     /******************************************************************************************************************/
-    /*从表达式获取随机值*/
-    private static String getNumFromExp(String exp){
-        String expReplace = exp.replaceAll("<=","<").replaceAll(">=",">"); //替换
+    /*从表达式获取随机值(替换<=为<后)*/
+    private static String getNumFromExp(String exp,Random random){
         Object result = null;
-        String[] split = expReplace.split("&&");
+        String[] split = exp.split("&&");
         if(StringUtils.isNotBlank(exp) && null!=split){
             for (int i = 0; i < split.length; i++) {
                 String s = split[i].trim();
@@ -289,9 +298,9 @@ public static  int pointLength(String strNumber){
                             n2 = s.split(">")[2].trim();
                         }
                         if(n1.contains(".") || n2.contains(".")){
-                            result = getRandomDoubleBetween(n1,n2);
+                            result = getRandomDoubleBetween(n1,n2,random);
                         }else{
-                            result = getRandomIntBetweenAA(Integer.parseInt(n1),Integer.parseInt(n2));
+                            result = getRandomIntBetweenAA(Integer.parseInt(n1),Integer.parseInt(n2),random);
                         }
 
                     }else if(s.split("<").length==2 || s.split(">").length==2){
@@ -299,97 +308,97 @@ public static  int pointLength(String strNumber){
 
                         if(s.contains("<")){
                             String[] split1 = s.split("<");
-                            try{
-                                Double n2um = Double.parseDouble(split1[0].trim());
-                                n1 = split1[0].trim();
-                            }catch (Exception e){
-                                Double n2um = Double.parseDouble(split1[1].trim());
-                                n1 = split1[1].trim();
-                            }
-                            result = getRandomIntBetweenAA(Integer.parseInt(n1),-9999);
+                            n1 = getVarableNum(split1);
+                            result = getRandomIntBetweenAA(Integer.parseInt(n1),-9999,random);
                         }else if(s.contains(">")){
                             String[] split1 = s.split(">");
-                            try{
-                                Double n2um = Double.parseDouble(split1[0].trim());
-                                n1 = split1[0].trim();
-                            }catch (Exception e){
-                                Double n2um = Double.parseDouble(split1[1].trim());
-                                n1 = split1[1].trim();
-                            }
+                            n1 = getVarableNum(split1);
 
                             if(n1.contains(".")){
-                                result = getRandomDoubleBetween(n1,"9999");
+                                result = getRandomDoubleBetween(n1,"9999",random);
                             }else{
-                                result = getRandomIntBetweenAA(Integer.parseInt(n1),9999);
+                                result = getRandomIntBetweenAA(Integer.parseInt(n1),9999,random);
                             }
 
                         }
                     } if(s.split("=").length==2){
                         String[] split1 = s.split("=");
-                        try{
-                            Double n2um = Double.parseDouble(split1[0].trim());
-                            result = split1[0].trim();
-                        }catch (Exception e){
-                            Double n2um = Double.parseDouble(split1[1].trim());
-                            result = split1[1].trim();
-                        }
+                        result =getVarableNum(split1);
                     }
                         break;
                 }
             }
 
         }else{
-            result =getRandomIntBetweenAA(0,9999);
+            result =getRandomIntBetweenAA(0,9999,random);
         }
         return String.valueOf(result);
     }
 
+    private static String getVarableNum(String[] split1) {
+        String n1;
+        Double n2um;
+        try{
+            n2um = Double.parseDouble(split1[0].trim());
+            n1 = split1[0].trim();
+        }catch (Exception e){
+            n2um = Double.parseDouble(split1[1].trim());
+            n1 = split1[1].trim();
+        }
+        return n1;
+    }
 
 
 
     /*生成一对符合参数规则的变量和值*/
-    private static  Map<String,String>   getRandomParmAndValue(Map<String, String> paramMap) throws Exception {
+    private static  Map<String,String> getRandomParmAndValue(Map<String, String> paramMap, Random random) throws Exception {
         Map<String,String> parmAndValue = Maps.newHashMap();
-        ExpressionContext expressionContext = new ExpressionContext();
         String exp = paramMap.get("exp");
         String otherExp = paramMap.get("otherExp");
-        String  expLeftVarablue =   getVariable(splitExpByEq(exp)[1]).toArray(new String[0])[0];//等号右边变量名
+        String  expLeftVarablue =   getVariable(splitExpByEq(exp)[1]).toArray(new String[0])[0]; //等号右边变量名
 
         for (String key : paramMap.keySet()) {
-            if(key.equalsIgnoreCase("exp") ||key.equalsIgnoreCase(expLeftVarablue) ||key.equalsIgnoreCase("otherExp"))
+            if (key.equalsIgnoreCase("exp") || key.equalsIgnoreCase(expLeftVarablue) || key.equalsIgnoreCase("otherExp"))
                 continue;
             String keyVarStr = key;                  //变量名称
             String valueVarStr = paramMap.get(key);  //取值范围
-
-            boolean fondVar=true;
-            while(fondVar){
-                String randomNum = getNumFromExp(valueVarStr);
-                String convertExp = convertExp(valueVarStr);
-                convertExp= wipperVerable(convertExp,randomNum);
-                Boolean result = (Boolean) ExpressionEngine.evaluate(convertExp, expressionContext );
-                if(result){
-                    parmAndValue.put(keyVarStr,randomNum);
-                    fondVar=false;
-                }
-            }
+            String getNumFromExpReplaced = valueVarStr.replaceAll("<=","<").replaceAll(">=",">"); //替换
+            generatorRandomParmAdnValue(parmAndValue,expressionContext, keyVarStr, valueVarStr,getNumFromExpReplaced,random);
         }
-
-
         //其他验证
         if(StringUtils.isNotBlank(otherExp)) {
             String otherExpStr = wipperVerable(otherExp, parmAndValue);
             Boolean otherExpStrResult = (Boolean) ExpressionEngine.evaluate(otherExpStr, expressionContext);
             if (otherExpStrResult){
                 return parmAndValue;
+            }else{
+                return getRandomParmAndValue(paramMap,random);
             }
-             return getRandomParmAndValue(paramMap);
         }
-
-
         return parmAndValue;
     }
 
-  /******************************************************************************************************************/
+
+    /*生成一对符合参数规则的变量和值*/
+    private static void generatorRandomParmAdnValue(Map<String, String> parmAndValue, ExpressionContext expressionContext, String keyVarStr, String valueVarStr,String getNumFromExpReplaced, Random random) throws Exception {
+        boolean fondVar=true;
+        while(fondVar){
+            String randomNum = getNumFromExp(getNumFromExpReplaced,random);
+            String convertExp = convertExp(valueVarStr);
+            convertExp= wipperVerable(convertExp,randomNum);
+            Boolean result = (Boolean) ExpressionEngine.evaluate(convertExp, expressionContext );
+            if(result){
+                parmAndValue.put(keyVarStr,randomNum);
+                fondVar=false;
+            }
+        }
+    }
+
+
+
+
+
+    /******************************************************************************************************************/
 
       /*当前时间纳秒*/
       private static long getNowMilliSecond() {
@@ -407,7 +416,7 @@ public static  int pointLength(String strNumber){
                 put("exp", "a*c+b*c=d");  //公式,表达式右边只有1个变量
                 put("a", "0<a<100");    //取值范围 put("a", " && 0 <= a <= 10 && a>3 && a<9 && a=4 && a>b || a!=(6-b)/2");
                 put("b", "0<b<100");    //取值范围 // put("b", "b<=a || b<10");
-                put("c", "1<c<99");     //结果范围
+                put("c", "1<c<100");     //结果范围
                 put("d", "0<d<500");     //结果范围
                 put("otherExp", "a+b==100 || a+b==10");     //其他约束
 
@@ -419,7 +428,7 @@ public static  int pointLength(String strNumber){
         int timeout=20; //超时时间秒
         // getVariable(str1);
 
-        HashSet<String> resultSet = generatorRex(sum,timeout,paramMap);
+        Set<String> resultSet = generatorRex(sum,timeout,paramMap);
         System.out.println("---------------------------");
         System.out.println(resultSet.size());
         System.out.println("---------------------------");
@@ -427,50 +436,52 @@ public static  int pointLength(String strNumber){
     }
 
 
-    public static HashSet<String> generatorRex(int sum, int timeout, Map<String, String> paramMap) throws Exception {
+    public static Set<String> generatorRex(int sum, int timeout, Map<String, String> paramMap) throws Exception {
         String exp = paramMap.get("exp");
         String otherExp = paramMap.get("otherExp");
-        HashSet<String>  resultSet = Sets.newHashSet();
+        final Set<String>  resultSet = Sets.newConcurrentHashSet();
         long startMilliSecond = getNowMilliSecond();
-        ExpressionContext expressionContext = new ExpressionContext();
 
 
-        final ExecutorService executor = Executors.newFixedThreadPool(sum);
-        FutureTask<HashSet<String>> future = null;
+        final  ExecutorService executor = Executors.newCachedThreadPool();
+        FutureTask<Set<String>> future = null;
 
-        for (int i = 0; i < sum; i++) {
-            future = new FutureTask<HashSet<String>>(
-                    new Callable<HashSet<String>>() {
-                        public HashSet<String> call() throws Exception {
-                            while (true &&  resultSet.size()<sum){
-
-                                Map<String,String> parmAndValue = getRandomParmAndValue(paramMap); //符合条件的随机变量值
+        //Random random =new Random();
+        for (int i = 0; i < sum/2+1; i++) {
+             future = new FutureTask<Set<String>>(new Callable<Set<String>>() {
+                        public Set<String> call() throws Exception {
+                            Random random = ThreadLocalRandom.current();
+                            while (true && resultSet.size()<sum){
+                                Map<String,String> parmAndValue = getRandomParmAndValue(paramMap,random); //符合条件的随机变量值
 
                                 String expRight = wipperVerable(splitExpByEq(exp)[0],parmAndValue);
                                 Number expRightResult = (Number) ExpressionEngine.evaluate( expRight, expressionContext ); //等号左边值
 
-                                String  expLeftVarablue =   getVariable(splitExpByEq(exp)[1]).toArray(new String[0])[0];//等号右边变量名
+                                String  expLeftVarablue    = getVariable(splitExpByEq(exp)[1]).toArray(new String[0])[0];//等号右边变量名
                                 String expLeftVarablueExp  = paramMap.get(expLeftVarablue);//等号右边变量名，范围
 
                                 String finalExpResult = wipperVerable(convertExp(expLeftVarablueExp), expRightResult);//等号左边的计算结果，替换等号右边的表达式值
                                 Boolean expLeftResult = (Boolean) ExpressionEngine.evaluate( finalExpResult , expressionContext );//等号左边的计算结果是否在给定范围
 
-                                    //找到结果后退出
-                                    if(expLeftResult){
-                                        resultSet.add("".concat(expRight+"="+expRightResult).replaceAll("/","÷")); //去掉重复
-                                    }
+                                //找到结果后退出
+                                if(expLeftResult && resultSet.size()<sum){
+                                   System.out.println(Thread.currentThread().getName() + "找到结果前，size:"+ resultSet.size());
+                                    resultSet.add("".concat(expRight+"="+expRightResult).replaceAll("/","÷").replaceAll("\\*","×")); //去掉重复
+                                }
                             }
                             return resultSet;
                         }
                     });
             executor.execute(future);
-
         }
+
         try{
             future.get(timeout, TimeUnit.SECONDS);
         }catch (Exception ex){
             System.out.println(ex);
             return resultSet;
+        }finally {
+            executor.shutdown();
         }
 
         return resultSet;
@@ -478,23 +489,6 @@ public static  int pointLength(String strNumber){
 
     /******************************************************************************************************************/
 
-
-
-    @Test
-    public void testA(){
-        for(int i=0;i<10;i++){
-            //System.out.println(getNumFromExp("0 <= a <= 10"));
-            //System.out.println(getNumFromExp("0<a<10"));
-            //System.out.println(getNumFromExp("0>=a>10"));
-            System.out.println(getNumFromExp("200>a>0"));
-        }
-
-//
-//        for(int i=0;i<50;i++){
-//            System.out.println(getRandomIntBetweenAA(3,6));
-//        }
-
-    }
 
 
     @Test
@@ -573,27 +567,6 @@ public void test44() throws Exception {
        }
 
    }
-
-
-
-    @Test
-    public void test01(){
-        boolean b=true;
-        int j=0;
-        while (b){
-            j++;
-            int i = getRandomIntBetweenAA(1,3);
-            System.out.println(i);
-            if(i==-3){
-                System.out.println(i);
-                System.out.println(j);
-                b=false;
-            }
-            if(j==100)
-                b=false;
-        }
-        System.out.println();
-    }
 
 
 

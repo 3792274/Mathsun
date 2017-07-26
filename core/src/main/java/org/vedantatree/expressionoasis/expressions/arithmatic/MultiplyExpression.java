@@ -82,10 +82,7 @@ public class MultiplyExpression extends BinaryOperatorExpression
 			}
 			else if( returnType == Type.DOUBLE )
 			{
-				BigDecimal leftValueBig  = new BigDecimal(leftValue.toString());
-				BigDecimal rightValueBig = new BigDecimal(rightValue.toString());
-				result =  leftValueBig.multiply(rightValueBig).doubleValue();
-				System.out.println(result);
+				result =  new BigDecimal(leftValue.toString()).multiply(new BigDecimal(rightValue.toString())).doubleValue();
 			}
 		}
 

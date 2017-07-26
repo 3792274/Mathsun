@@ -31,6 +31,7 @@ import org.vedantatree.expressionoasis.expressions.BinaryOperatorExpression;
 import org.vedantatree.expressionoasis.types.Type;
 import org.vedantatree.expressionoasis.types.ValueObject;
 
+import java.math.BigDecimal;
 
 /**
  * This is the class expression which performs the divide operations.
@@ -94,7 +95,9 @@ public class DivideExpression extends BinaryOperatorExpression
 		{
 			if( returnType == Type.DOUBLE )
 			{
-				result = new Double( ( (Number) leftValue ).doubleValue() / ( (Number) rightValue ).doubleValue() );
+				//result = new Double( ( (Number) leftValue ).doubleValue() / ( (Number) rightValue ).doubleValue() );
+				result =  new BigDecimal(leftValue.toString()).divide(new BigDecimal(rightValue.toString())).doubleValue();
+
 			}
 		}
 
