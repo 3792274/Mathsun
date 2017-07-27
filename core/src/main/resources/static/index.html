@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>出题</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <style>
+        .gray{
+            background: #ccc;
+        }
+    </style>
+    <script src="lib/vue-v2.4.2.js"></script>
+    <script src="lib/axios-0.16.2.min.js"></script>
+
+    <link rel="stylesheet" href="lib/bootstrap.min.css">
+    <script src="lib/jquery-1.7.2.js"></script>
+    <script src="lib/bootstrap.js"></script>
+
+    <script>
+        var genRexUrl  = '/genRex/';
+        var getVariableUrl = '/genRex/getVariable';
+
+        function mapToJson(map) {
+            return JSON.stringify([...map]);
+        }
+
+        function jsonToMap(jsonStr) {
+            return new Map(JSON.parse(jsonStr));
+        }
+
+        function strMapToObj(strMap) {
+            let obj = Object.create(null);
+            for (let [k,v] of strMap) {
+                // We don’t escape the key '__proto__'
+                // which can cause problems on older engines
+                obj[k] = v;
+            }
+            return obj;
+        }
+
+        function objToStrMap(obj) {
+            let strMap = new Map();
+            for (let k of Object.keys(obj)) {
+                strMap.set(k, obj[k]);
+            }
+            return strMap;
+        }
+
+        function strMapToJson(strMap) {
+            return JSON.stringify(strMapToObj(strMap));
+        }
+
+        function jsonToStrMap(jsonStr) {
+            return objToStrMap(JSON.parse(jsonStr));
+        }
+
+
+        window.onload=function(){
+            new Vue({
+                el:'#box',
+                data:{
+                    expVars:[],
+                    exp:'',
+                    otherExp:'',
+                    sumRow:10,
+                    sumCol:5,
+                    result:[],
+                    now:-1,
+                    hidden:false
+                },
+                methods:{
+                    hiddenAns:function () {
+                        this.hidden = !this.hidden;
+                    },
+                    getVars:function(ev){
+                        var $this = this;
+                        if(ev.keyCode==38 || ev.keyCode==40)return;
+                        axios({
+                            method:'post',
+                            url:getVariableUrl,
+                            data:{
+                                exp:this.exp,
+                            },
+                            timeout: 1000,
+                        }).then(function(res){
+                             $this.expVars = [];
+                            for (var i = 0; i < res.data.length; i ++) {
+                               var item = {varName: res.data[i],varValue: '0<='+res.data[i]+'<=10'};
+                                $this.expVars.push(item);
+                            }
+                        }).catch(function (error) {
+                            console.log(error);
+                        });
+
+
+                    },
+                    getResult:function () {
+                        var $this = this;
+                        let  data = new Map();
+                        this.expVars.forEach((item,key)=>{
+                            data.set(item.varName,item.varValue);
+                        });
+                        data.set("exp",this.exp);
+                        data.set("otherExp",this.otherExp);
+                        data.set("sumRow",this.sumRow);
+                        data.set("sumCol",this.sumCol);
+
+                        axios.post(genRexUrl,JSON.parse(strMapToJson(data))).then(function(res){
+                            $this.result = res.data;
+                             console.log($this.result.length)
+                        },function(){
+                        });
+
+                    }
+                }
+            });
+        };
+    </script>
+
+</head>
+<body>
+    <div id="box"  class="container" style="padding-top: 15px" >
+        <form role="form">
+            <div class="input-group">
+                <span class="input-group-addon">Exp:</span>
+                <input type="text" id="exp"  class="form-control"  placeholder="输入公式" v-model="exp" @keyup="getVars($event)" @keydown.down="changeDown()" @keydown.up.prevent="changeUp()">
+            </div>
+
+            <ol>
+                <li v-for="(item,index) in expVars">
+                    <div class="input-group">
+                         <span class="input-group-addon">{{item.varName}}: 取值范围：</span>
+                         <input type="text"  class="form-control"   v-model="expVars[index].varValue"  :name="item.varValue" />
+                    </div>
+                </li>
+
+                <div v-show="expVars.length!=0" style="margin: 15px">
+                    <div class="input-group">
+                        <span class="input-group-addon">其他条件:</span>
+                        <input type="text"  class="form-control"  v-model="otherExp"  placeholder="其他条件如：a>b && a+b==10 || a+b==100"/>
+                    </div>
+                    <div class="input-group">
+                        <span class="input-group-addon">总行数:&nbsp;&nbsp;&nbsp;</span>
+                        <input type="text"  class="form-control small"  v-model="sumRow" />
+                    </div>
+
+                    <div class="input-group">
+                        <span class="input-group-addon">总列数:&nbsp;&nbsp;&nbsp;</span>
+                        <input type="text"  class="form-control small " v-model="sumCol"/>
+                    </div>
+
+                </div>
+            </ol>
+
+            <input type="button" class="btn btn-primary"  v-show="expVars.length!=0"  v-on:click="getResult()"  value="提交"/>
+            <input type="button" class="btn btn-warning"  v-show="result.length!=0"  @click="hiddenAns"  :value="hidden?'隐藏答案':'显示答案'"/>
+
+        </form>
+        <p v-show="expVars.length==0">暂无数据...</p>
+
+        <div v-show="result.length!=0" >
+            <hr>
+
+            <table class="table table-bordered table-hover">
+                <caption class="h3 text-info">计算题</caption>
+                <tr class="text-center" v-for="rowNum in sumRow">
+                    <td style="border: medium"  v-for="colNum in sumCol">
+                        {{(rowNum-1)*sumCol+colNum}} : {{(result[(rowNum-1)*sumCol+colNum-1]+"").split('=')[0]+"="}}
+                        <span v-show="hidden">{{(result[(rowNum-1)*sumCol+colNum-1]+"").split('=')[1]}}</span>
+                    </td>
+                </tr>
+            </table>
+
+           <!-- <ul v-for="item in result">
+                <li>{{item}}</li>
+            </ul>-->
+
+        </div>
+    </div>
+</body>
+</html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

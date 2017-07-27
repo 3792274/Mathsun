@@ -447,7 +447,7 @@ public static  int pointLength(String strNumber){
         FutureTask<Set<String>> future = null;
 
         //Random random =new Random();
-        for (int i = 0; i < 8; i++) {
+        for (int i = 0; i < sum/2+1; i++) {
              future = new FutureTask<Set<String>>(new Callable<Set<String>>() {
                         public Set<String> call() throws Exception {
                             Random random = ThreadLocalRandom.current();
@@ -470,7 +470,7 @@ public static  int pointLength(String strNumber){
 
                                 //找到结果后退出
                                 if(expLeftResult && resultSet.size()<sum){
-                                    System.out.println(Thread.currentThread().getName() + "找到结果前，size:"+ resultSet.size());
+                                    //System.out.println(Thread.currentThread().getName() + "找到结果前，size:"+ resultSet.size());
                                     resultSet.add("".concat(expRight+"="+expRightResult).replaceAll("/","÷").replaceAll("\\*","×")); //去掉重复
                                 }
                             }
