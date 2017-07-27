@@ -413,12 +413,11 @@ public static  int pointLength(String strNumber){
     public void test04() throws Exception {
         Map<String, String> paramMap = new HashMap<String, String>() {
             {
-                put("exp", "a*c+b*c=d");  //公式,表达式右边只有1个变量
-                put("a", "0<a<100");    //取值范围 put("a", " && 0 <= a <= 10 && a>3 && a<9 && a=4 && a>b || a!=(6-b)/2");
-                put("b", "0<b<100");    //取值范围 // put("b", "b<=a || b<10");
-                put("c", "1<c<100");     //结果范围
-                put("d", "0<d<500");     //结果范围
-                put("otherExp", "a+b==100 || a+b==10");     //其他约束
+                put("exp", "a+b%=c");  //公式,表达式右边只有1个变量
+                put("a", "0<a<10");    //取值范围 put("a", " && 0 <= a <= 10 && a>3 && a<9 && a=4 && a>b || a!=(6-b)/2");
+                put("b", "0<b<10");    //取值范围 // put("b", "b<=a || b<10");
+                put("c", "0<c<10");     //结果范围
+                put("otherExp", "");     //其他约束
 
             }
         };
@@ -437,7 +436,9 @@ public static  int pointLength(String strNumber){
 
 
     public static Set<String> generatorRex(int sum, int timeout, Map<String, String> paramMap) throws Exception {
-        String exp = paramMap.get("exp");
+        String exp = paramMap.get("exp").replaceAll("%","*0.01");
+
+
         String otherExp = paramMap.get("otherExp");
         final Set<String>  resultSet = Sets.newHashSet();
         long startMilliSecond = getNowMilliSecond();
@@ -471,7 +472,7 @@ public static  int pointLength(String strNumber){
                                 //找到结果后退出
                                 if(expLeftResult && resultSet.size()<sum){
                                     //System.out.println(Thread.currentThread().getName() + "找到结果前，size:"+ resultSet.size());
-                                    resultSet.add("".concat(expRight+"="+expRightResult).replaceAll("/","÷").replaceAll("\\*","×")); //去掉重复
+                                    resultSet.add("".concat(expRight+"="+expRightResult).replaceAll("\\*0.01","%").replaceAll("/","÷").replaceAll("\\*","×")); //去掉重复
                                 }
                             }
                             return null;

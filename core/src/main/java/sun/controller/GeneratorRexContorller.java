@@ -58,7 +58,6 @@ public class GeneratorRexContorller {
     public  Set<String>  getVariable(@RequestBody(required = false) Map<String,String> reqMap) {
         if(reqMap!=null && reqMap.containsKey("exp")){
             String exp = reqMap.get("exp");
-            System.out.println(exp);
             Set<String> variables = RandomUtil.getVariable(exp);
             return variables;
         }
