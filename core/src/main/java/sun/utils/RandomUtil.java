@@ -447,31 +447,37 @@ public static  int pointLength(String strNumber){
         FutureTask<Set<String>> future = null;
 
         //Random random =new Random();
-        for (int i = 0; i < sum/2+1; i++) {
+        for (int i = 0; i < 8; i++) {
              future = new FutureTask<Set<String>>(new Callable<Set<String>>() {
                         public Set<String> call() throws Exception {
                             Random random = ThreadLocalRandom.current();
+                            String expRight;
+                            Number expRightResult;
+                            String  expLeftVarablue;
+                            String expLeftVarablueExp;
+                            String finalExpResult;
+                            Boolean expLeftResult;
                             while (true && resultSet.size()<sum){
                                 Map<String,String> parmAndValue = getRandomParmAndValue(paramMap,random); //符合条件的随机变量值
-                                String expRight = wipperVerable(splitExpByEq(exp)[0],parmAndValue);
-                                Number expRightResult = (Number) ExpressionEngine.evaluate( expRight, expressionContext ); //等号左边值
+                                expRight = wipperVerable(splitExpByEq(exp)[0],parmAndValue);
+                                expRightResult = (Number) ExpressionEngine.evaluate( expRight, expressionContext ); //等号左边值
 
-                                String  expLeftVarablue    = getVariable(splitExpByEq(exp)[1]).toArray(new String[0])[0];//等号右边变量名
-                                String expLeftVarablueExp  = paramMap.get(expLeftVarablue);//等号右边变量名，范围
+                                expLeftVarablue    = getVariable(splitExpByEq(exp)[1]).toArray(new String[0])[0];//等号右边变量名
+                                expLeftVarablueExp  = paramMap.get(expLeftVarablue);//等号右边变量名，范围
 
-                                String finalExpResult = wipperVerable(convertExp(expLeftVarablueExp), expRightResult);//等号左边的计算结果，替换等号右边的表达式值
-                                Boolean expLeftResult = (Boolean) ExpressionEngine.evaluate( finalExpResult , expressionContext );//等号左边的计算结果是否在给定范围
+                                finalExpResult = wipperVerable(convertExp(expLeftVarablueExp), expRightResult);//等号左边的计算结果，替换等号右边的表达式值
+                                expLeftResult = (Boolean) ExpressionEngine.evaluate( finalExpResult , expressionContext );//等号左边的计算结果是否在给定范围
 
                                 //找到结果后退出
                                 if(expLeftResult && resultSet.size()<sum){
-                                    //System.out.println(Thread.currentThread().getName() + "找到结果前，size:"+ resultSet.size());
+                                    System.out.println(Thread.currentThread().getName() + "找到结果前，size:"+ resultSet.size());
                                     resultSet.add("".concat(expRight+"="+expRightResult).replaceAll("/","÷").replaceAll("\\*","×")); //去掉重复
                                 }
                             }
-                            return resultSet;
+                            return null;
                         }
                     });
-            executor.execute(future);
+            executor.submit(future);
         }
 
         try{
