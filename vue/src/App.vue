@@ -50,11 +50,6 @@
                     </td>
                 </tr>
             </table>
-
-            <!-- <ul v-for="item in result">
-                 <li>{{item}}</li>
-             </ul>-->
-
         </div>
     </div>
 </template>
