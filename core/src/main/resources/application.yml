@@ -1,6 +1,6 @@
 # 开发环境配置
 server:
-  port: 12369
+  port: 80
 
 
 logging:

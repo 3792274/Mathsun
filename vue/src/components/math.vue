@@ -48,8 +48,8 @@
 </template>
 
 <script>
-    var genRexUrl  = 'http://10.10.14.42:12369/genRex/';
-    var getVariableUrl = 'http://10.10.14.42:12369/genRex/getVariable';
+    var genRexUrl  = 'http://localhost/genRex/';
+    var getVariableUrl = 'http://localhost/genRex/getVariable';
 
     function mapToJson(map) {
         return JSON.stringify([...map]);

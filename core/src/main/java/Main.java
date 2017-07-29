@@ -37,7 +37,7 @@ public class Main {
 //        model.addAttribute("singlePerson", single);
 //        model.addAttribute("people", people);
 //        return "index";
-        return "redirect:/index.html";
+        return "redirect:dist/index.html";
     }
 
 }
