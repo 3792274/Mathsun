@@ -1,56 +1,48 @@
 <template>
     <div id="box" class="container" style="padding-top: 15px" >
-        <el-button @click.native="startHacking">按钮</el-button>
-        <form role="form">
-            <div class="input-group">
-                <span class="input-group-addon">Exp:</span>
-                <input type="text" id="exp"  class="form-control"  placeholder="输入公式" v-model="exp" @keyup="getVars($event)" @keydown.down="changeDown()" @keydown.up.prevent="changeUp()">
-            </div>
+        <div style="margin: 10px;"></div>
+        <el-form :label-position="left" label-width="80px">
+
+            <el-input type="text" id="exp"  v-model="exp"   placeholder="输入公式，例如：a+b=c"  @change="getVars" icon="edit" >
+                    <template slot="prepend">公式：</template>
+            </el-input>
 
             <ol>
                 <li v-for="(item,index) in expVars">
-                    <div class="input-group">
-                        <span class="input-group-addon">{{item.varName}}: 取值范围：</span>
-                        <input type="text"  class="form-control"   v-model="expVars[index].varValue"  :name="item.varValue" />
-                    </div>
+                    <el-input type="text"  v-model="expVars[index].varValue"  :name="item.varValue" icon="edit" >
+                        <template slot="prepend">{{item.varName}}: 取值范围：</template>
+                    </el-input>
                 </li>
-
                 <div v-show="expVars.length!=0" style="margin: 15px">
-                    <div class="input-group">
-                        <span class="input-group-addon">其他条件:</span>
-                        <input type="text"  class="form-control"  v-model="otherExp"  placeholder="其他条件如：a>b && a+b==10 || a+b==100"/>
-                    </div>
-                    <div class="input-group">
-                        <span class="input-group-addon">总行数:&nbsp;&nbsp;&nbsp;</span>
-                        <input type="text"  class="form-control small"  v-model="sumRow" />
-                    </div>
-
-                    <div class="input-group">
-                        <span class="input-group-addon">总列数:&nbsp;&nbsp;&nbsp;</span>
-                        <input type="text"  class="form-control small " v-model="sumCol"/>
-                    </div>
-
+                    <el-input type="text"  v-model="otherExp"  placeholder="其他条件如：a>b && a+b==10 || a+b==100"  icon="edit" >
+                        <template slot="prepend">其他条件:</template>
+                    </el-input>
+                    <el-input type="text"   v-model="sumRow"   @change="setResultTableData" icon="edit" >
+                        <template slot="prepend">总行数:&nbsp;&nbsp;&nbsp;</template>
+                    </el-input>
+                    <el-input type="text"   v-model="sumCol"  @change="setResultTableData"  icon="edit" >
+                        <template slot="prepend">总列数:&nbsp;&nbsp;&nbsp;</template>
+                    </el-input>
                 </div>
             </ol>
 
-            <input type="button" class="btn btn-primary"  v-show="expVars.length!=0"  v-on:click="getResult()"  value="提交"/>
-            <input type="button" class="btn btn-warning"  v-show="result.length!=0"  @click="hiddenAns"  :value="hidden?'隐藏答案':'显示答案'"/>
-
-        </form>
+            <el-button type="primary"  v-show="expVars.length!=0"  @click="getResult"  icon="upload">提交</el-button>
+            <el-button type="warning"  v-show="result.length!=0"   @click="hiddenAns"  :icon="hidden?'star-on':'star-off'">{{hidden?'显示答案':'隐藏答案'}}</el-button>
+        </el-form>
         <p v-show="expVars.length==0">暂无数据...</p>
 
         <div v-show="result.length!=0" >
             <hr>
-
-            <table class="table table-bordered table-hover">
-                <caption class="h3 text-info">计算题</caption>
-                <tr class="text-left" v-for="rowNum in sumRow">
-                    <td style="border: medium"  v-for="colNum in sumCol">
-                        {{(rowNum-1)*sumCol+colNum}} : {{(result[(rowNum-1)*sumCol+colNum-1]+"").split('=')[0]+"="}}
-                        <span v-show="hidden">{{(result[(rowNum-1)*sumCol+colNum-1]+"").split('=')[1]}}</span>
-                    </td>
-                </tr>
-            </table>
+            <el-table ref="singleTable" border :data="resultTableData" highlight-current-row  @current-change="setCurrentClickRow" style="width: 100%">
+               <el-table-column v-for="colNum in parseInt(sumCol)"    :property="resultTableDataColomName[colNum-1]">
+                   <template scope="scope">
+                       <span style="margin-left: 10px">
+                           <!--{{(scope.$index)*sumCol+colNum}}： --> {{scope.row[scope.column.property].split('=')[0]+"="}}
+                            <span v-show="hidden">{{scope.row[scope.column.property].split('=')[1]}}</span>
+                       </span>
+                   </template>
+               </el-table-column>
+            </el-table>
         </div>
     </div>
 </template>
@@ -105,16 +97,18 @@
                 sumCol:5,
                 result:[],
                 now:-1,
-                hidden:false
+                hidden:false,
+                resultTableData:[],
+                resultTableDataColomName:[]
             }
         },
         methods:{
             hiddenAns:function () {
                 this.hidden = !this.hidden;
             },
-            getVars:function(ev){
+            getVars:function(event){
                 var $this = this;
-                if(ev.keyCode==38 || ev.keyCode==40)return;
+                if(event.keyCode==38 || event.keyCode==40) return;
                 this.axios({
                     method:'post',
                     url:getVariableUrl,
@@ -134,6 +128,24 @@
 
 
             },
+            setResultTableData: function () {
+                this.resultTableData =[];
+                this.resultTableDataColomName =[];
+                for (var i = 0; i < this.sumCol; i++) {
+                    this.resultTableDataColomName[i] = "C" + i;
+                }
+
+
+                for (var i = 0; i < this.sumRow; i++) {
+                    var newRow = {};
+                    for (var j = 0; j < this.resultTableDataColomName.length; j++) {
+                        let name = this.resultTableDataColomName[j];
+                        newRow["" + name + ""] = this.result[(i + 1 - 1) * this.sumCol + j];
+                    }
+                    this.resultTableData[i] = newRow;
+
+                }
+            },
             getResult:function () {
                 var $this = this;
                 let  data = new Map();
@@ -146,20 +158,15 @@
                 data.set("sumCol",this.sumCol);
                 this.axios.post(genRexUrl,JSON.parse(strMapToJson(data))).then(function(res){
                     $this.result = res.data;
+                    $this.setResultTableData();
                 },function(){
                 });
-
             },
-            startHacking () {
-                this.$notify({
-                    title: 'OK',
-                    message: '饿了么\'s UI,OK!',
-                    duration: 6000
-                })
+            setCurrentClickRow(val) {
+                this.currentRow = val;
             }
         }
     }
-
 </script>
 
 
