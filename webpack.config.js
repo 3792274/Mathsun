@@ -18,7 +18,7 @@ webpackConfig.entry = {
 // output
 webpackConfig.output = {
     path: resolve(__dirname, './core/src/main/resources/static/dist'),
-    publicPath: '/',
+    publicPath: '/dist',
     filename: isProduction ? '[name].[hash].js' : '[name].js',
 };
 

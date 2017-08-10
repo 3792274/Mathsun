@@ -5,7 +5,7 @@ server:
 
 logging:
      path: C:/logs
-     logFileLeve: ERROR
+     logFileLeve: debug
      jdbcUrl: jdbc:mysql://localhost:3306/lottery_pay_local?characterEncoding=utf8&useSSL=false
      username: '[密文]tloCKldFYbN9UsbK+OFOOg=='
      password: '[密文]avsf77v6E93FvOBqTzSzdA=='

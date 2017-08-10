@@ -2,6 +2,7 @@ package sun.utils;/**
  * Created by admin on 2017/7/21.
  */
 
+import com.alibaba.fastjson.JSON;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -13,6 +14,7 @@ import org.vedantatree.expressionoasis.ExpressionContext;
 import org.vedantatree.expressionoasis.ExpressionEngine;
 import org.vedantatree.expressionoasis.exceptions.ExpressionEngineException;
 
+import java.rmi.registry.LocateRegistry;
 import java.text.NumberFormat;
 import java.util.*;
 import java.util.concurrent.*;
@@ -395,6 +397,41 @@ public static  int pointLength(String strNumber){
     }
 
 
+    /*对比数值是否在指定范围小数点位数内数值*/
+    public static boolean testPointLength(String strExp,String val){
+        if(val.endsWith(".0")){
+            val = val.replaceAll(".0","");
+        }
+        String reg = "\\d+(\\.\\d+)?";
+        Matcher m = Pattern.compile(reg).matcher(strExp);
+        Set<String> set = new HashSet<String>();
+        while(m.find()){
+            set.add(m.group());
+        }
+        String[] pointLength = set.toArray(new String[0]); //小数点位数
+        int minLength=0;
+        int maxLength=0;
+
+        if(pointLength!=null && pointLength.length==1){
+            maxLength = pointLength(pointLength[0]);
+
+        }else if(pointLength!=null && pointLength.length==2){
+            minLength = pointLength(pointLength[0]);
+            maxLength = pointLength(pointLength[1]);
+        }
+
+        int valLength=pointLength(val);// 值的小数点位数
+        if(minLength==maxLength){
+            return valLength==minLength && valLength==maxLength;
+        }
+        if(minLength<maxLength){
+            return minLength<=valLength && valLength<=maxLength;
+        }
+        if(minLength>maxLength){
+            return minLength>=valLength && valLength>=maxLength;
+        }
+        return false;
+    }
 
 
 
@@ -413,17 +450,19 @@ public static  int pointLength(String strNumber){
     public void test04() throws Exception {
         Map<String, String> paramMap = new HashMap<String, String>() {
             {
-                put("exp", "a+b%=c");  //公式,表达式右边只有1个变量
-                put("a", "0<a<10");    //取值范围 put("a", " && 0 <= a <= 10 && a>3 && a<9 && a=4 && a>b || a!=(6-b)/2");
-                put("b", "0<b<10");    //取值范围 // put("b", "b<=a || b<10");
-                put("c", "0<c<10");     //结果范围
-                put("otherExp", "");     //其他约束
+                put("exp", "a/b+c/d=e");  //公式,表达式右边只有1个变量
+                put("a", "0<=a<=10");    //取值范围 put("a", " && 0 <= a <= 10 && a>3 && a<9 && a=4 && a>b || a!=(6-b)/2");
+                put("b", "0<b<=10");    //取值范围 // put("b", "b<=a || b<10");
+                put("c", "0<=c<=10");     //结果范围
+                put("d", "0<d<=10");     //结果范围
+                put("e", "0<=e<=10");     //结果范围
+                put("otherExp", "b==d");     //其他约束
 
             }
         };
 
 
-        int sum=100; //总题数
+        int sum=50; //总题数
         int timeout=20; //超时时间秒
         // getVariable(str1);
 
@@ -472,7 +511,18 @@ public static  int pointLength(String strNumber){
                                 //找到结果后退出
                                 if(expLeftResult && resultSet.size()<sum){
                                     //System.out.println(Thread.currentThread().getName() + "找到结果前，size:"+ resultSet.size());
-                                    resultSet.add("".concat(expRight+"="+expRightResult).replaceAll("\\*0.01","%").replaceAll("/","÷").replaceAll("\\*","×")); //去掉重复
+                                   // System.out.println(expRight+"="+expRightResult);
+                                    boolean testPointLength = testPointLength(expLeftVarablueExp, expRightResult.toString()); //返回结果是否在给定范围的小数点位数内
+                                    if(testPointLength){
+                                        String  expRightResult2;
+                                        if(expRightResult.toString().endsWith(".0")){
+                                            expRightResult2 = expRightResult.toString().replaceAll(".0","");
+                                        }else{
+                                            expRightResult2 = expRightResult.toString();
+                                        }
+                                        resultSet.add("".concat(expRight+"="+expRightResult2).replaceAll("\\*0.01","%").replaceAll("/","÷").replaceAll("\\*","×")); //去掉重复
+                                    }
+
                                 }
                             }
                             return null;
@@ -485,6 +535,7 @@ public static  int pointLength(String strNumber){
             future.get(timeout, TimeUnit.SECONDS);
         }catch (Exception ex){
             System.out.println(ex);
+            ex.printStackTrace();
             return resultSet;
         }finally {
             executor.shutdown();
@@ -667,6 +718,18 @@ public void test44() throws Exception {
 
         System.out.println(lists);
     }
+
+
+    @Test
+    public void testaa(){
+        String str = "0.11<e<=100.23";
+        String val="1.1";
+        System.out.println(testPointLength(str,val));;
+
+
+    }
+
+
 
 
 }

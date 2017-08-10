@@ -96,7 +96,7 @@ public class DivideExpression extends BinaryOperatorExpression
 			if( returnType == Type.DOUBLE )
 			{
 				//result = new Double( ( (Number) leftValue ).doubleValue() / ( (Number) rightValue ).doubleValue() );
-				result =  new BigDecimal(leftValue.toString()).divide(new BigDecimal(rightValue.toString())).doubleValue();
+				result =  new BigDecimal(leftValue.toString()).divide(new BigDecimal(rightValue.toString()),9, BigDecimal.ROUND_DOWN).doubleValue();
 
 			}
 		}
